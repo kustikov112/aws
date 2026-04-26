@@ -1,11 +1,11 @@
-# Task 6 (SQS & SNS, Async Microservices Communication)
+# Task 6 (SQS & SNS — Async Microservices Communication)
 
 ## Prerequisites
 
 ---
 
-- The task is a continuation of Homework 5 and should be done in the same repo
-- Task goal is to create a service to be able to save products which were provided in csv file in database.
+- The task is a continuation of module 5 and should be done in the same repos.
+- Goal: process bulk CSV point imports asynchronously so large files do not block the Lambda execution timeout and individual point failures are isolated.
 
 ## Architecture
 
@@ -20,75 +20,96 @@ Find the entire program architecture: [here](../Architecture.pdf).
 
 </details>
 
+## Module Feature Flags
+
+For this module, update your frontend flags and check off:
+
+- [ ] `module=6`
+- [ ] `async.enableSqsPipeline=true`
+- [ ] `async.enableSnsNotifications=true`
+- [ ] Keep auth and AI flags disabled
+
+## Node.js Implementation Track (Required)
+
+- [ ] Implement SQS batch processing and SNS publish in Point Service.
+- [ ] Process a stable queue message schema and produce consistent success notifications.
+
+Reference snippets:
+
+- [starter_app_templates/backend_node/module_snippets.ts](../starter_app_templates/backend_node/module_snippets.ts)
+
 ## Tasks
 
 ---
 
 ### Task 6.1
 
-1. Create a lambda function called `catalogBatchProcess` under the Product Service which will be triggered by an SQS event.
-2. Create an SQS queue called `catalogItemsQueue`, in the AWS CDK Stack.
-3. Configure the SQS to trigger lambda `catalogBatchProcess` with _5 messages_ at once via `batchSize` property.
-4. The lambda function should iterate over all SQS messages and create corresponding products in the products table.
+1. Create a lambda function called `catalogBatchProcess` in the Point Service CDK stack, triggered by an SQS event.
+2. Create an SQS queue called `pointsImportQueue` in the CDK stack.
+3. Configure the SQS trigger with `batchSize: 5` so that up to 5 point records are processed per Lambda invocation.
+4. The lambda should iterate over all SQS messages and write each point to the DynamoDB `points` table (reuse the createPoint logic from module 4).
 
 ### Task 6.2
 
-1. Update the `importFileParser` lambda function in the Import Service to send each CSV record into SQS.
-2. It should no longer log entries from the _readable stream_ to CloudWatch.
+1. Update the `importFileParser` lambda from the Import Service (module 5) to send each parsed CSV row as a message to `pointsImportQueue` instead of only logging to CloudWatch.
+2. Each SQS message body should be a JSON object matching the point schema: `{ title, description, latitude, longitude }`.
 
 ### Task 6.3
 
-1. Create an SNS topic `createProductTopic` and email subscription in the AWS CDK Stack of the Product Service.
-2. Create a subscription for this SNS topic with an `email` endpoint type with your own email in there.
-3. Update the `catalogBatchProcess` lambda function in the Product Service to send an event to the SNS topic once it creates products.
+1. Create an SNS topic called `pointsImportTopic` and an email subscription in the Point Service CDK stack.
+2. Subscribe your own email address to this topic.
+3. Update `catalogBatchProcess` to publish a notification to `pointsImportTopic` after successfully persisting points, including a summary: how many points were created in that batch.
+4. Publish a numeric message attribute `count` so filter policies work.
+
+Deployment note for this workspace:
+
+- Import API (module 6): `https://dvkz8uvoxc.execute-api.eu-central-1.amazonaws.com/prod`
+- Frontend env: set `VITE_IMPORT_API_URL` in `starter_app_templates/frontend/.env.local`
+- To create email subscription during deploy, pass context:
+
+```bash
+npx cdk deploy --context pointsTableName=<points-table-name> --context notificationEmail=<your-email>
+```
+
+> **Optional filter policy:** create a second subscription that only receives messages for batches containing more than 3 points (use an SNS filter policy on a `count` message attribute).
 
 ### Task 6.4
 
-1. Commit all your work to separate branch (e.g. `task-6` from the latest `master`) in your own repository.
-2. Create a pull request to the `master` branch.
-3. Submit link to the pull request to Crosscheck page in [RS App](https://app.rs.school).
+1. Commit all your work to a separate branch (e.g. `task-6`) in your own repository.
+2. Create a pull request to the `main` branch.
+3. Submit the link to the pull request in the Crosscheck page in [RS App](https://app.rs.school).
 
 ## Evaluation criteria (70 points for covering all criteria)
 
 ---
 
-Reviewers should verify the lambda functions, SQS and SNS topic and subscription in PR.
-
-- AWS CDK Stack contains configuration for `catalogBatchProcess` function
-- AWS CDK Stack contains policies to allow lambda `catalogBatchProcess` function to interact with SNS and SQS
-- AWS CDK Stack contains configuration for SQS `catalogItemsQueue`
-- AWS CDK Stack contains configuration for SNS Topic `createProductTopic` and email subscription
+- CDK stack contains configuration for the `catalogBatchProcess` lambda.
+- CDK stack contains IAM policies allowing `catalogBatchProcess` to interact with SNS and SQS.
+- CDK stack contains configuration for the `pointsImportQueue` SQS queue.
+- CDK stack contains configuration for the `pointsImportTopic` SNS topic and email subscription.
 
 ## Additional (optional) tasks
 
 ---
 
-- **+15** **(All languages)** - `catalogBatchProcess` lambda is covered by **unit** tests
-- **+15** **(All languages)** - set a Filter Policy for SNS `createProductTopic` in AWS CDK Stack and create an additional email subscription to distribute messages to different emails depending on the filter for any product attribute
+- **+15** — `catalogBatchProcess` lambda is covered by unit tests.
+- **+15** — SNS filter policy is set and a second subscription receives filtered messages (e.g. only batches with `count > 3`).
 
 ## Penalties
 
 ---
 
-- **-50** - Serverless Framework used to create and deploy infrastructure
+- **-50** — Serverless Framework used to create and deploy infrastructure.
 
 ## Description Template for PRs
 
 ---
 
-The following should be present in PR's description field:
-
 1. What was done?
 
-   Example:
+2. Link to Point Service and Import Service APIs — .....
+3. Link to FE PR (YOUR OWN REPOSITORY) — ...
 
-```
-   Service is done, but FE is not working...
+Acceptance template:
 
-   Additional scope - webpack, swagger, unit tests
-```
-
-2. Link to Product Service and Import Service APIs - .....
-3. Link to FE PR (YOUR OWN REPOSITORY) - ...
-
-4. In case SWAGGER file is not provided - please provide product schema in PR description
+- [acceptance_test_templates/module_06_async_checklist.txt](../acceptance_test_templates/module_06_async_checklist.txt)

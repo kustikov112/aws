@@ -4,9 +4,9 @@
 
 ---
 
-- The task is a continuation of Homework 4 and should be done in the same repos
-- **(for JS only)** Install the latest version of [AWS SDK](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/getting-started-nodejs.html)
-- **(for JS only)** Install the [CSV parser package](https://www.npmjs.com/package/csv-parser)
+- The task is a continuation of module 4 and should be done in the same repos.
+- **(Node.js)** Install the latest version of [AWS SDK v3](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/getting-started-nodejs.html).
+- **(Node.js)** Install the [csv-parser](https://www.npmjs.com/package/csv-parser) package.
 
 ## Architecture
 
@@ -21,88 +21,121 @@ Find the entire program architecture: [here](../Architecture.pdf).
 
 </details>
 
+## Module Feature Flags
+
+For this module, update your frontend flags and check off:
+
+- [ ] `module=5`
+- [ ] `ui.enableUploadPhoto=true`
+- [ ] `ui.enableCsvImport=true`
+- [ ] Keep auth and AI flags disabled
+
+## Node.js Implementation Track (Required)
+
+- [ ] Implement presigned URLs, S3 triggers, and CSV parsing in `import-service`.
+- [ ] Keep S3 object key conventions stable (`uploads/{pointId}/{fileName}`, `uploaded/{fileName}`, `parsed/{fileName}`).
+- [ ] Keep API and error response format consistent.
+
 ## Tasks
 
 ---
 
 ### Task 5.1
 
-1. Create a new service called `import-service` at the same level as Product Service with its own AWS CDK Stack. The backend project structure should look like this:
+1. Create a new service called `import-service` at the same level as the Point Service with its own CDK stack.
 
 ```
-   backend-repository
-      product-service
-      import-service
+backend
+├── point_service
+└── import_service   <- new
 ```
 
-2. In the AWS Console **create** and **configure** a new S3 bucket with a folder called `uploaded`.
+2. In the AWS Console, create and configure a new S3 bucket with a folder called `uploads`.
 
-### Task 5.2
+### Task 5.2 — Photo upload via presigned URL
 
-1. Create a lambda function called `importProductsFile` under the Import Service which will be triggered by the HTTP GET method.
-2. The requested URL should be `/import`.
-3. Implement its logic so it will be expecting a request with a name of CSV file with products and creating a new [**Signed URL**](https://docs.aws.amazon.com/AmazonS3/latest/userguide/example_s3_Scenario_PresignedUrl_section.html) with the following key: `uploaded/${fileName}`.
-4. The name will be passed in a _query string_ as a `name` parameter and should be described in the AWS CDK Stack as a _request parameter_.
-5. Update AWS CDK Stack with policies to allow lambda functions to interact with S3.
-6. The response from the lambda should be clean **Signed URL**, as a string.
-7. The lambda endpoint should be integrated with the frontend by updating `import` property of the API paths configuration.
+1. Create a lambda function called `getUploadUrl` in the Import Service CDK stack, triggered by `GET /upload`.
+2. The function should accept a `fileName` query parameter and return a presigned S3 `PUT` URL for the key `uploads/{pointId}/{fileName}`.
+   - Also accept a `pointId` query string parameter so photos are scoped to a specific point.
+3. The presigned URL should expire in 5 minutes.
+4. Update the CDK stack with IAM policies allowing the lambda to generate presigned URLs for the S3 bucket.
+5. Integrate the frontend: the "Upload Photo" button should call `GET /upload?pointId=...&fileName=...`, then `PUT` the file directly to S3 using the presigned URL.
+6. Use presigned URLs with expiration time `300` seconds.
 
-### Task 5.3
+Add the deployed import API URL to frontend local env before testing UI:
 
-1. Create a lambda function called `importFileParser` under the Import Service which will be triggered by an S3 event.
-2. The event should be `s3:ObjectCreated:*`
-3. Configure the event to be fired only by changes in the `uploaded` folder in S3.
-4. The lambda function should use a _readable stream_ to get an object from S3, parse it using `csv-parser` package and log each record to be shown in CloudWatch.
+```bash
+# starter_app_templates/frontend/.env.local
+VITE_IMPORT_API_URL=https://gbd1fz112a.execute-api.eu-central-1.amazonaws.com/prod
+```
 
-### Task 5.4
+### Task 5.3 — S3 event trigger
 
-1. Commit all your work to separate branch (e.g. `task-5` from the latest `master`) in your own repository.
-2. Create a pull request to the `master` branch.
-3. Submit link to the pull request to Crosscheck page in [RS App](https://app.rs.school).
+1. Create a lambda function called `processUploadedPhoto` in the Import Service CDK stack, triggered by the `s3:ObjectCreated:*` event on the `uploads/` prefix.
+2. The lambda should:
+   - Parse the `pointId` from the S3 key (e.g. `uploads/{pointId}/{fileName}`).
+   - Update the corresponding DynamoDB `points` record with the `photoUrl` field (the S3 object URL or a CloudFront URL if configured).
+   - Log the record details to CloudWatch.
+
+### Task 5.4 — CSV bulk import
+
+1. Create a lambda function called `importPointsFile` in the Import Service CDK stack, triggered by `GET /import`.
+2. The function should accept a `fileName` query parameter and return a presigned S3 `PUT` URL for the key `uploaded/{fileName}` where `fileName` is a `.csv` file.
+3. Create a lambda function called `importFileParser` triggered by `s3:ObjectCreated:*` on the `uploaded/` prefix.
+4. The parser should read the CSV using a readable stream, log each record to CloudWatch, and move the file from `uploaded/` to `parsed/` when done.
+5. Ensure the parser publishes this record shape for downstream queue processing:
+
+   - `{ "title": string, "description": string, "latitude": number, "longitude": number }`
+
+Expected CSV format:
+
+```
+title,description,latitude,longitude
+Eiffel Tower,Iconic iron lattice tower,48.8584,2.2945
+```
+
+### Task 5.5
+
+1. Commit all your work to a separate branch (e.g. `task-5`) in your own repository.
+2. Create a pull request to the `main` branch.
+3. Submit the link to the pull request in the Crosscheck page in [RS App](https://app.rs.school).
 
 ## Evaluation criteria (70 points for covering all criteria)
 
 ---
 
-Reviewers should verify the lambda functions by invoking them through provided URLs.
-
-- AWS CDK Stack contains configuration for `importProductsFile` function
-- The `importProductsFile` lambda function returns a correct response which can be used to upload a file into the S3 bucket
-- Frontend application is integrated with `importProductsFile` lambda
-- The `importFileParser` lambda function is implemented and AWS CDK Stack contains configuration for the lambda
+- CDK stack contains configuration for `getUploadUrl` function.
+- `getUploadUrl` returns a valid presigned URL that can be used to upload a file to S3.
+- Frontend is integrated with `getUploadUrl`; uploaded photo URL is stored in DynamoDB.
+- `importPointsFile` and `importFileParser` are implemented and configured in the CDK stack.
 
 ## Additional (optional) tasks
 
 ---
 
-- **+10** **(All languages)** - `importProductsFile` lambda is covered by _unit tests_.
-  You should consider to mock S3 and other AWS SDK methods so not trigger actual AWS services while unit testing.
-- **+10** **(All languages)** - `importFileParser` lambda is covered by _unit tests_.
-- **+10** **(All languages)** - At the end of the stream the lambda function should move the file from the `uploaded` folder into the `parsed` folder (`move the file` means that file should be copied into a new folder in the same bucket called `parsed`, and then deleted from `uploaded` folder)
+- **+10** — `getUploadUrl` lambda is covered by unit tests (mock S3 SDK calls).
+- **+10** — `importFileParser` lambda is covered by unit tests.
+- **+10** — At the end of the stream `importFileParser` moves the file from `uploaded/` to `parsed/` (copy then delete).
 
 ## Penalties
 
 ---
 
-- **-50** - Serverless Framework used to create and deploy infrastructure
+- **-50** — Serverless Framework used to create and deploy infrastructure.
 
 ## Description Template for PRs
 
 ---
 
-The following should be present in PR's description field:
-
 1. What was done?
 
-   Example:
+2. Link to Import Service API — .....
+3. Link to FE PR (YOUR OWN REPOSITORY) — ...
 
-```
-   Service is done, but FE is not working...
+Acceptance template:
 
-   Additional scope - webpack, swagger, unit tests
-```
+- [acceptance_test_templates/module_05_upload_import.http](../acceptance_test_templates/module_05_upload_import.http)
 
-2. Link to Import Service API - .....
-3. Link to FE PR (YOUR OWN REPOSITORY) - ...
+Deployed example for this workspace:
 
-4. In case SWAGGER file is not provided - please provide product schema in PR description
+- Import API: `https://gbd1fz112a.execute-api.eu-central-1.amazonaws.com/prod`

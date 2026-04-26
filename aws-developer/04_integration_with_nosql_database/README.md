@@ -85,14 +85,13 @@
 
   <blockquote>
 
-  - [Best practices for Amazon RDS](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_BestPractices.html)
-  - [Using Amazon RDS with Amazon VPC](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.html)
   - [A guide to understanding database scaling patterns](https://www.freecodecamp.org/news/understanding-database-scaling-patterns/)
-  - [AWS SDK for JavaScript examples](https://github.com/aws-samples/aws-sdk-js-notes-app)
+  - [AWS SDK for JavaScript DynamoDB examples](https://github.com/aws-samples/aws-sdk-js-notes-app)
+  - [DynamoDB best practices](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/best-practices.html)
   </blockquote>
 
 </details>
 
 # Assignments
 
-[Cloud Databases Overview and integration with Database](task.md)
+[Integration with NoSQL Database — MapPoints](task.md)

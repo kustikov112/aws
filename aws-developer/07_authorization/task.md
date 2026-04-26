@@ -4,7 +4,7 @@
 
 ---
 
-- The task is a continuation of Homework 6 and should be done in the same repo.
+- The task is a continuation of module 6 and should be done in the same repos.
 
 ## Architecture
 
@@ -19,105 +19,115 @@ Find the entire program architecture: [here](../Architecture.pdf).
 
 </details>
 
+## Module Feature Flags
+
+For this module, update your frontend flags and check off:
+
+- [ ] `module=7`
+- [ ] `security.enableBasicAuthForImport=true`
+- [ ] Keep `security.enableCognito=false`
+- [ ] Keep `security.requireAuthForCreatePoint=false` until module 8
+
+## Node.js Implementation Track (Required)
+
+- [ ] Implement `basicAuthorizer` with base64 decode and IAM policy response.
+- [ ] Return `401` for missing header, `403` for invalid credentials, and allow policy for valid credentials.
+
+Reference snippets:
+
+- [starter_app_templates/backend_node/module_snippets.ts](../starter_app_templates/backend_node/module_snippets.ts)
+
 ## Tasks
 
 ---
 
 ### Task 7.1
 
-1. Create a new service called `authorization-service` at the same level as Product and Import services with its own AWS CDK Stack. The backend project structure should look like this:
+1. Create a new service called `authorization-service` at the same level as Point Service and Import Service.
 
 ```
-   backend-repository
-      product-service
-      import-service
-      authorization-service
+backend
+├── point_service
+├── import_service
+└── authorization_service   <- new
 ```
 
-2. Create a lambda function called `basicAuthorizer` under the Authorization Service.
-3. This lambda should have at least one environment variable with the following credentials:
+2. Create a lambda function called `basicAuthorizer` in the Authorization Service CDK stack.
+3. The lambda must read at least one environment variable in the format:
 
 ```
-  {yours_github_account_login}=TEST_PASSWORD
+{your_github_login}=TEST_PASSWORD
 ```
 
-- `{yours_github_account_login}` - your GitHub account name. Login for test user should be your GitHub account name
-- `TEST_PASSWORD` - password string. Password for test user must be "TEST_PASSWORD"
-- example: `johndoe=TEST_PASSWORD`
+- `{your_github_login}` — your GitHub account name (used as the username).
+- The password must be `TEST_PASSWORD`.
+- Example: `johndoe=TEST_PASSWORD`
 
-3. This `basicAuthorizer` lambda should take _Basic Authorization_ token, decode it and check that credentials provided by token exist in the lambda environment variable.
-4. This lambda should return 403 HTTP status if access is denied for this user (invalid `authorization_token`) and 401 HTTP status if Authorization header is not provided.
-5. In case of successfull authorizations, lambda should return IAM policy, which is enabling the invocation of desired method [Documentation](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html)
+4. The `basicAuthorizer` lambda should:
+   - Decode the incoming `Authorization: Basic {token}` header (base64-encoded `username:password`).
+   - Look up the decoded username in its environment variables.
+   - Return a **403** IAM deny policy if credentials are wrong or the username is not found.
+   - Return a **401** response if the `Authorization` header is absent.
+   - Return an IAM allow policy on success ([API Gateway Lambda Authorizer docs](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html)).
+5. Add a tiny unit test set for three scenarios: missing token, invalid token, valid token.
 
-_NOTE: Do not send your credentials to the GitHub. Use `.env` file and `dotenv` package to add environment variables to the lambda. Add `.env` file to `.gitignore` file._
-
-```
-  .env file example:
-    vasiapupkin=TEST_PASSWORD
-```
+_NOTE: Never commit credentials to GitHub. Use a `.env` file with the `dotenv` package, and add `.env` to `.gitignore`._
 
 ### Task 7.2
 
-1. Add Lambda authorization to the `/import` path of the Import Service API Gateway.
-2. Use your `basicAuthorizer` lambda as the Lambda authorizer
+1. Add the Lambda authorizer to the `GET /import` path of the Import Service API Gateway.
+2. Use your `basicAuthorizer` lambda as the authorizer.
 
 ### Task 7.3
 
-1. Request from the client application to the `/import` path of the Import Service should have _Basic Authorization_ header:
+1. Update the frontend app so that requests to `GET /import` include an `Authorization: Basic {token}` header:
+   - `{token}` is the base64-encoded string `{your_github_login}:TEST_PASSWORD`.
+   - The frontend should read the token from `localStorage.getItem('authorization_token')`.
 
-```
-  Authorization: Basic {authorization_token}
-```
+Deployment note for this workspace:
 
-- `{authorization_token}` is a base64-encoded `{yours_github_account_login}:TEST_PASSWORD`
-- example: `Authorization: Basic sGLzdRxvZmw0ZXs0UGFzcw==`
+- Import API (module 7): `https://wtvv5f2ni0.execute-api.eu-central-1.amazonaws.com/prod`
+- Set token in browser console before using Import CSV:
 
-2. Client should get `authorization_token` value from browser [localStorage](https://developer.mozilla.org/ru/docs/Web/API/Window/localStorage)
-
-```
-  const authorization_token = localStorage.getItem('authorization_token')
+```js
+// replace username with deployed ConfiguredAuthUser output
+localStorage.setItem("authorization_token", btoa("anton_kustikov:TEST_PASSWORD"));
 ```
 
 ### Task 7.4
 
-1. Commit all your work to separate branch (e.g. `task-7` from the latest `master`) in your own repository.
-2. Create a pull request to the `master` branch.
-3. Submit link to the pull request to Crosscheck page in [RS App](https://app.rs.school).
+1. Commit all your work to a separate branch (e.g. `task-7`) in your own repository.
+2. Create a pull request to the `main` branch.
+3. Submit the link to the pull request in the Crosscheck page in [RS App](https://app.rs.school).
 
 ## Evaluation criteria (70 points for covering all criteria)
 
 ---
 
-Provide your reviewers with the link to the repo, client application and URLs to execute the `/import` path of the Import Service`
+Provide reviewers with the repo link, the client app URL, and the `/import` API URL.
 
-- `authorization-service` is added to the repo, has correct `basicAuthorizer` lambda and correct AWS CDK Stack
-- Import Service AWS CDK Stack has authorizer configuration for the `importProductsFile` lambda. Request to the `importProductsFile` lambda should work only with correct `authorization_token` being decoded and checked by `basicAuthorizer` lambda. Response should be in 403 HTTP status if access is denied for this user (invalid `authorization_token`) and in 401 HTTP status if Authorization header is not provided.
-- Client application is updated to send "Authorization: Basic `authorization_token`" header on import. Client should get `authorization_token` value from browser [localStorage](https://developer.mozilla.org/ru/docs/Web/API/Window/localStorage)
+- `authorization-service` is added to the repo with the correct `basicAuthorizer` lambda and CDK stack.
+- Import Service CDK stack has the authorizer configured for `importPointsFile`. Requests to `importPointsFile` work only with a valid `Authorization` header — 403 for invalid tokens, 401 for missing header.
+- The client app sends the `Authorization: Basic {token}` header on import, reading the token from `localStorage`.
 
 ## Additional (optional) tasks
 
 ---
 
-_NOTE: Recommended for personal growth and further interviews, but this part would not be evaluated on cross-check._
-
-- **+30** - Client application should display alerts for the responses in 401 and 403 HTTP statuses. This behavior should be added to the `nodejs-aws-fe-main/src/index.tsx` file.
-- **Just Practice, No Evaluation** - Add Login page and protect `getProductsList` lambda by the Cognito Authorizer
-  - Create Cognito User Pool using a demo from the lecture. Leave `email` in a list of standard required attributes. Checkbox `Allow users to sign themselves up` should be checked. Also, set `email` as an attribute that you want to verify.
-  - Add `App Client` to the User Pool
-  - In the `App Client Settings` section select all `Identity Providers`. Fill the `Callback URL(s)` field with your Client Application URL (i.e. `http://localhost:3000/`). Allow only `Authorization code grant` OAuth Flow. Allow all `OAuth Scopes`
-  - Create Domain name
-  - After all of these manipulations, you can open your `Login Page` by clicking on the `Launch Hosted UI` link in the `App Client Settings`
-  - Provide this link to your reviewers. The reviewer can just confirm that everything works for him too.
-  - Add Cognito authorizer to the `getProductsList` lambda. Use `Authorization` as a `Token Source`
-  - How to make sure that everything works as expected:
-    - Open Login Page and `Sign Up` a new user. Use a real email address to create this user
-    - Verify user using code from the email
-    - After verification and after every login you will be redirected to the Client application. URL should contain `id_token` which can be used to access the `getProductsList` lambda
-    - Call `getProductsList` lambda using `id_token` as a value for the `Authorization` header
-  - Remove authorization from the `getProductsList` after your task will be checked
+- **+30** — Frontend shows alert messages for 401 and 403 HTTP responses in the import flow.
+- **Just Practice, No Evaluation** — Add a Login page and protect `getPointsList` with a Cognito Authorizer. This is a preview of module 8:
+  - Create a Cognito User Pool with email as a required attribute and self-sign-up enabled.
+  - Add an App Client; configure the Hosted UI callback URL pointing to your frontend.
+  - Add a Cognito authorizer to `getPointsList` using `Authorization` as the token source.
+  - Test: sign up, verify email, log in via Hosted UI, copy the `id_token` from the callback URL, and call `GET /points` with `Authorization: {id_token}`.
+  - Remove this authorizer before submitting — it will be the focus of module 8.
 
 ## Penalties
 
 ---
 
-- **-50** - Serverless Framework used to create and deploy infrastructure
+- **-50** — Serverless Framework used to create and deploy infrastructure.
+
+Acceptance template:
+
+- [acceptance_test_templates/module_07_authorization.http](../acceptance_test_templates/module_07_authorization.http)

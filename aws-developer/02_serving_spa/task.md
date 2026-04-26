@@ -4,7 +4,7 @@
 
 - **Install** the latest version of AWS CDK (https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html)
 - **Configure** credentials for AWS to make them accessible AWS CLI & CDK
-- **Fork** React Shop single page app from https://github.com/rolling-scopes-school/nodejs-aws-shop-react
+- **Fork** the MapPoints React app from https://github.com/rolling-scopes-school/gis-app-aws
 - **Install** dependencies
 - **Check** if everything works for you
 
@@ -21,6 +21,39 @@ Find the entire program architecture: [here](../Architecture.pdf).
 
 </details>
 
+## Module Feature Flags
+
+Use the shared template from [feature-flags.template.json](../feature-flags.template.json).
+You can also reuse [starter_app_templates/FeatureGuard.tsx](../starter_app_templates/FeatureGuard.tsx) and [starter_app_templates/FeatureFlagsPanel.tsx](../starter_app_templates/FeatureFlagsPanel.tsx) to implement UI checkboxes safely.
+
+For this module, update your frontend flags and check off:
+
+- [ ] `module=2`
+- [ ] `ui.showMap=true`
+- [ ] Keep all API/auth/upload/import/AI flags disabled
+
+In this module, all future features must render as disabled controls (for example: disabled buttons with "Available in next modules" label) so the app works without backend services.
+
+## Node.js Implementation Track (Required)
+
+Use a single backend track across the course.
+
+- [ ] Node.js track: create CDK app in TypeScript for S3 + CloudFront deployment.
+- [ ] Output the values required by frontend config (S3 website URL and CloudFront URL).
+- [ ] Keep one shared frontend and one shared feature-flags file.
+
+Reference snippets:
+
+- [starter_app_templates/backend_node/module_snippets.ts](../starter_app_templates/backend_node/module_snippets.ts)
+- [starter_app_templates/frontend/src/App.tsx](../starter_app_templates/frontend/src/App.tsx)
+- [starter_app_templates/frontend/src/config/featureFlags.json](../starter_app_templates/frontend/src/config/featureFlags.json)
+- [starter_app_templates/frontend/.env.example](../starter_app_templates/frontend/.env.example)
+- [starter_app_templates/module_02_infra_node/lib/module-02-hosting-stack.ts](../starter_app_templates/module_02_infra_node/lib/module-02-hosting-stack.ts)
+- [acceptance_test_templates/module_02_hosting_checklist.txt](../acceptance_test_templates/module_02_hosting_checklist.txt)
+
+For module 2 local work, no API Gateway URL is needed yet.
+Before first AWS deployment, make sure `aws sts get-caller-identity` works. If it fails because the session expired, run `aws login` and retry.
+
 ## Tasks
 
 ### Task 2.1
@@ -28,7 +61,7 @@ Find the entire program architecture: [here](../Architecture.pdf).
 **Manual Deployment**
 
 1. In the AWS Console **create** and **configure** an S3 bucket where you will host your app (follow instructions in training materials).
-2. **Build** and **manually upload** the MyShop! app to the created S3 bucket. **Check** if the app is available through the Internet over `http://{your-bucket-name}.s3-website-{aws-region}.amazonaws.com` .
+2. **Build** and **manually upload** the MapPoints app to the created S3 bucket. **Check** if the app is available through the Internet over `http://{your-bucket-name}.s3-website-{aws-region}.amazonaws.com` .
 3. **Create** a CloudFront distribution for your app as it was described in training materials. **Check** your S3 bucket policy changes. **Check** if the app is available through the Internet over given CloudFront URL.
 4. **Make** some minor but visible changes in the app, **build** and **upload** them to your bucket, and create CloudFront distribution invalidation.
 
@@ -44,6 +77,10 @@ _NOTE: After uploading an application's build to the S3 bucket you need to manua
 3. **Add** and **configure** CloudFront Distribution and Invalidation using AWS CDK. **Add** necessary npm script(s) to build, upload to your S3 bucket, and invalidate CloudFront cache from your machine in an automated way. **Check** if everything works fine and all changes appear on the Web.
 
 _NOTE: Now that you have this plugin you don’t need to manually create CloudFront invalidations any more._
+
+4. Add deployment commands to README of your infrastructure repository:
+
+  - Node.js example: `npm run cdk:deploy` / `npm run cdk:destroy`
 
 ### Task 2.3
 

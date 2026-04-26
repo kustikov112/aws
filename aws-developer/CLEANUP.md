@@ -1,95 +1,80 @@
-# Cleaning Up Resources After Passing the Course
+# Cleaning Up Resources After Completing the Course
 
-After completing the course, it's a good idea to clean up all the resources you have created to avoid unnecessary spendings.
+After finishing the course, remove all AWS resources you created to avoid unexpected charges.
 
 ## Table of Contents
-1. [Removing CDK Deployments from All Repos](#removing-cdk-deployments-from-all-repos)
-2. [Remove RDS via Console](#remove-rds-via-console)
-3. [Remove DynamoDB via Console](#remove-dynamodb-via-console)
+1. [Destroy CDK Stacks](#destroy-cdk-stacks)
+2. [Remove Cognito User Pool](#remove-cognito-user-pool)
+3. [Remove DynamoDB Tables](#remove-dynamodb-tables)
 4. [Clean and Delete S3 Buckets](#clean-and-delete-s3-buckets)
 5. [Ensure CloudFormation is Clean](#ensure-cloudformation-is-clean)
-6. [Remove All LogGroups from CloudWatch](#remove-all-loggroups-from-cloudwatch)
-7. [Check if Lambda, EC2, CloudFront, SNS, SQS, API Gateway, and EBS Pages are Empty](#check-if-lambda-ec2-cloudfront-sns-sqs-api-gateway-and-ebs-pages-are-empty)
+6. [Remove CloudWatch Log Groups](#remove-cloudwatch-log-groups)
+7. [Check Remaining Services](#check-remaining-services)
 
-## Removing CDK Deployments from All Repos
+## Destroy CDK Stacks
 
-1. Navigate to the directories of your CDK stacks.
-2. Run the following command to destroy the stack:
+The safest way to remove all infrastructure is to destroy the CDK stacks.
+
+1. Navigate to each CDK project directory (e.g. `point_service`, `import_service`, `authorization_service`).
+2. Run:
     ```sh
     cdk destroy --all
     ```
 3. Confirm the destruction when prompted.
 
-Repeat these steps for each CDK project repository.
+Repeat for each CDK project in your backend repository.
 
-## Remove RDS via Console
+## Remove Cognito User Pool
 
-1. Open the [Amazon RDS Console](https://console.aws.amazon.com/rds/).
-2. In the navigation pane, choose **Databases**.
-3. Select the database instance you want to delete.
-4. Choose **Actions** and then **Delete**.
-5. Remove the checkbox from Final backup creation.
-5. Follow the prompts to delete the database instance.
+CDK destroy should handle this, but verify manually:
 
-## Remove DynamoDB via Console
+1. Open the [Amazon Cognito Console](https://console.aws.amazon.com/cognito/).
+2. Go to **User Pools**.
+3. Select any remaining User Pools and delete them.
+4. Go to **Identity Pools** and delete any that exist.
+
+## Remove DynamoDB Tables
+
+CDK destroy should handle the tables created by this course. To verify:
 
 1. Open the [Amazon DynamoDB Console](https://console.aws.amazon.com/dynamodb/).
-2. In the navigation pane, choose **Tables**.
-3. Select the table you want to delete.
-4. Choose **Actions** and then **Delete Table**.
-5. Confirm the deletion.
+2. Go to **Tables**.
+3. Look for `points`, `point_metadata`, `users`, and `photo_enrichment` tables.
+4. Delete any that remain.
 
 ## Clean and Delete S3 Buckets
 
 1. Open the [Amazon S3 Console](https://console.aws.amazon.com/s3/).
-2. Select the bucket you want to delete.
-3. Empty the bucket by deleting all objects and folders within it.
-4. Once the bucket is empty, select the bucket again.
-5. Choose **Delete bucket** and confirm the deletion.
+2. For each bucket created during the course (frontend bucket, imports bucket):
+   - Select the bucket.
+   - Empty it (delete all objects and folders).
+   - Then delete the bucket.
 
 ## Ensure CloudFormation is Clean
 
 1. Open the [AWS CloudFormation Console](https://console.aws.amazon.com/cloudformation/).
-2. In the navigation pane, choose **Stacks**.
-3. Review the list of stacks. If there are any stacks you no longer need, select them.
-4. Choose **Delete** and confirm the deletion.
+2. Review the **Stacks** list.
+3. Delete any stacks that are no longer needed.
 
-## Remove All LogGroups from CloudWatch
+## Remove CloudWatch Log Groups
+
+Lambda functions automatically create log groups. Remove them to avoid minor storage costs:
 
 1. Open the [Amazon CloudWatch Console](https://console.aws.amazon.com/cloudwatch/).
-2. In the navigation pane, choose **Log groups**.
-3. Select the log groups you want to delete.
-4. Choose **Actions** and then **Delete log group(s)**.
-5. Confirm the deletion.
+2. Go to **Log groups**.
+3. Select all log groups from the course (typically prefixed with `/aws/lambda/`).
+4. Choose **Actions → Delete log group(s)** and confirm.
 
-## Check if Lambda, EC2, CloudFront, SNS, SQS, API Gateway, and EBS Pages are Empty
+## Check Remaining Services
 
-1. **Lambda**:
-    - Open the [AWS Lambda Console](https://console.aws.amazon.com/lambda/).
-    - Ensure there are no functions listed. If there are, delete them.
+Verify each service console to make sure nothing was missed:
 
-2. **EC2**:
-    - Open the [Amazon EC2 Console](https://console.aws.amazon.com/ec2/).
-    - Ensure there are no running instances, volumes, or other resources. Terminate any that are still active.
+1. **Lambda** — [Console](https://console.aws.amazon.com/lambda/): ensure no functions remain.
+2. **API Gateway** — [Console](https://console.aws.amazon.com/apigateway/): ensure no APIs remain.
+3. **SNS** — [Console](https://console.aws.amazon.com/sns/): delete any leftover topics and subscriptions.
+4. **SQS** — [Console](https://console.aws.amazon.com/sqs/): delete any leftover queues.
+5. **CloudFront** — [Console](https://console.aws.amazon.com/cloudfront/): disable and delete any distributions.
+6. **Rekognition** — no persistent resources; no cleanup needed (pay-per-call service).
+7. **IAM** — review and remove any roles or policies created specifically for this course.
 
-3. **CloudFront**:
-    - Open the [Amazon CloudFront Console](https://console.aws.amazon.com/cloudfront/).
-    - Ensure there are no distributions. If there are, disable and delete them.
-
-4. **SNS**:
-    - Open the [Amazon SNS Console](https://console.aws.amazon.com/sns/).
-    - Ensure there are no topics or subscriptions. Delete any that exist.
-
-5. **SQS**:
-    - Open the [Amazon SQS Console](https://console.aws.amazon.com/sqs/).
-    - Ensure there are no queues. Delete any that exist.
-
-6. **API Gateway**:
-    - Open the [Amazon API Gateway Console](https://console.aws.amazon.com/apigateway/).
-    - Ensure there are no APIs. Delete any that exist.
-
-7. **EBS**:
-    - Open the [Amazon EC2 Console](https://console.aws.amazon.com/ec2/).
-    - In the navigation pane, choose **Elastic Block Store** > **Volumes**.
-    - Ensure there are no volumes. Delete any that exist.
-
+> **Note:** EC2, RDS, Elastic Beanstalk, and Docker/container resources are **not** used in this course and do not need to be checked.
