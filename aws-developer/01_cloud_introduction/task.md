@@ -72,7 +72,7 @@ You will update these checkboxes module by module in tasks 2-10.
 3. Familiarize yourself with the target application: a map where users drop pins (points) at geographic coordinates, attach a description, and optionally upload a photo for each point.
 4. Verify that the starter frontend works locally before any AWS deployment:
 
-    - `cd starter_app_templates/frontend`
+    - `cd frontend`
     - `npm install`
     - `npm run build`
 
