@@ -6,7 +6,7 @@
 
 - **Install** the latest version of AWS CDK (https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html).
 - **Configure** credentials for AWS to make them accessible by AWS CLI & CDK.
-- **Create** your **own public GitHub repository** for all future backend work. You will have 2 repos — 1 for frontend and 1 for backend for the rest of the course.
+
 
 The desired backend working tree should look like this:
 
@@ -78,7 +78,7 @@ Implement this module in the Node.js backend track:
 2. The response should be a _full_ array of map points (use **mock data** stored in the Point Service — at least 5 sample points with realistic coordinates).
 3. Integrate this endpoint with the Frontend app so that map points are displayed on the map.
 
-> **Node.js hint:** export the handler from a dedicated `handlers/getPointsList.js` file.
+> **Node.js hint:** export the handler from a dedicated `handlers/getPointsList.ts` file.
 
 ### Task 3.2
 
