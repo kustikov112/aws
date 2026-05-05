@@ -15,7 +15,7 @@ Find the entire program architecture: [here](../Architecture.pdf).
 
 ## Data model
 
-Replace mock data from module 3 with the following DynamoDB tables.
+Replace mock data from module 3 with the following DynamoDB table.
 
 **points** table:
 
@@ -25,15 +25,9 @@ title       - string, not null
 description - string
 latitude    - number, not null
 longitude   - number, not null
-photoUrl    - string (optional, added in module 5)
-```
-
-**point_metadata** table (stores additional KV attributes per point):
-
-```
-point_id    - uuid (Partition key, Foreign key from points.id)
 createdAt   - string (ISO timestamp)
 tags        - string list (optional)
+photoUrl    - string (optional, added in module 5)
 ```
 
 ## Module Feature Flags
@@ -48,8 +42,8 @@ For this module, update your frontend flags and check off:
 ## Node.js Implementation Track (Required)
 
 - [ ] Use AWS SDK v3 DynamoDB client and implement `getPointsList`, `getPointById`, and `createPoint`.
-- [ ] Use consistent table names, key names, and response JSON.
-- [ ] `createPoint` must be transaction-based.
+- [ ] Use one DynamoDB table with consistent key names and response JSON.
+- [ ] `createPoint` must persist all point attributes in a single write operation.
 
 Reference snippets:
 
@@ -61,15 +55,15 @@ Reference snippets:
 
 ### Task 4.1
 
-1. Use the AWS Console to create the two DynamoDB tables described above with on-demand (PAY_PER_REQUEST) billing to stay within the free tier.
-2. Write a seed script to populate both tables with at least 5 test points. Store the script in your repository and execute it.
+1. Use the AWS Console to create the DynamoDB table described above with on-demand (PAY_PER_REQUEST) billing to stay within the free tier.
+2. Write a seed script to populate the table with at least 5 test points. Store the script in your repository and execute it.
 3. Provide a Node.js seed script (AWS SDK v3).
 
 ### Task 4.2
 
-1. Extend your CDK stack with the DynamoDB table ARNs and pass them to Lambda environment variables.
-2. Update the `getPointsList` lambda to return the full list of points from DynamoDB (join points + point_metadata by `point_id`).
-3. The frontend should display the joined model, for example:
+1. Extend your CDK stack with the DynamoDB table ARN and pass it to Lambda environment variables.
+2. Update the `getPointsList` lambda to return the full list of points from DynamoDB.
+3. The frontend should display the point model, for example:
 
 ```json
 {
@@ -88,7 +82,7 @@ Reference snippets:
 ### Task 4.3
 
 1. Create a lambda function called `createPoint` in the Point Service CDK stack, triggered by `POST /points`.
-2. It should write a new record to the **points** table and a corresponding record in **point_metadata** using a DynamoDB transaction.
+2. It should write a new record to the **points** table in DynamoDB.
 3. The request body should contain `title`, `description`, `latitude`, and `longitude`.
 4. Save your API Gateway URL for the PR description.
 
@@ -111,7 +105,7 @@ Reference snippets:
 
 Reviewers should verify the lambda functions by invoking them through the provided URLs.
 
-- Task 4.1 is implemented (DynamoDB tables created and seeded).
+- Task 4.1 is implemented (DynamoDB table created and seeded).
 - Task 4.2 is implemented; lambda URLs are provided and return data from DynamoDB.
 - Task 4.3 is implemented; `POST /points` creates a point in DynamoDB (verify with GET /points).
 - The Frontend shows points from DynamoDB (not mock data). Link to a working frontend is provided.
@@ -123,7 +117,7 @@ Reviewers should verify the lambda functions by invoking them through the provid
 - **+7.5** — `POST /points` returns 400 if required fields are missing or invalid.
 - **+7.5** — All lambdas return 500 on unexpected errors (DB connection failure, unhandled exceptions).
 - **+7.5** — All lambdas log each incoming request and arguments via `console.log`.
-- **+7.5** **(All languages)** — Point creation uses a DynamoDB transaction so that if `point_metadata` write fails, the `points` write is also rolled back (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/transaction-apis.html).
+- **+7.5** **(All languages)** — `POST /points` persists `createdAt` and returns the created record in the response body.
 
 ## Penalties
 
